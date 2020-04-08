@@ -35,33 +35,14 @@ class ofApp : public ofBaseApp{
     ofxCvGrayscaleImage grayDiff;
     
     ofxCvContourFinder contourFinder;
-    
     ofPolyline line;
-    
     vector<ofVec3f> blobpoints;
     
     int threshold;
     bool bLearnBackground;
     
-    unsigned long actualTime, shotTime;
-    unsigned int shotTimeDelta;
-    
-//    class Scheduler: public ofThread {
-//
-//    public:
-//        Scheduler() {
-//            timer.setPeriodicEvent(5000000000);
-//            startThread();
-//        }
-//
-//    private:
-//        ofTimer timer;
-//        void threadedFunction() {
-//            while(isThreadRunning()) {
-//                timer.waitNext();
-//                grayImgPic = grayImg;
-//            }
-//        }
-//    };
+    bool b_showDebug;
+    float currentTime, waitTime;
+    vector <ofImage> screenShots;
 		
 };

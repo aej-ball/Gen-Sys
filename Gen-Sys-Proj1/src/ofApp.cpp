@@ -6,8 +6,11 @@ void ofApp::setup(){
     kinect.init();
     kinect.open();
     
+    b_showDebug = true;
     ofSetBackgroundColor(255, 255, 255);
-    
+    currentTime = ofGetElapsedTimeMillis();
+    waitTime = 5000; // amount to wait in ms
+        
     colorImg.allocate(kinect.getWidth(), kinect.getHeight());
     grayImg.allocate(kinect.getWidth(), kinect.getHeight());
     backgroundGray.allocate(kinect.getWidth(),kinect.getHeight());
@@ -16,20 +19,14 @@ void ofApp::setup(){
     contoured.allocate(kinect.getWidth(), kinect.getHeight());
     
     bLearnBackground = true;
-    threshold = 70;
-    
+    threshold = 70;    
     string ofGetTimestampString("%A %B %Y %R");
-    
-    //Timer
-//    shotTimeDelta = 5000;
-
 }
 
 //--------------------------------------------------------------
 void ofApp::update(){
     
     line.clear();
-    
     bool bNewFrame = false;
     
     kinect.update();
@@ -40,59 +37,45 @@ void ofApp::update(){
     
     if (kinect.isFrameNew()){
         colorImg.setFromPixels(kinect.getPixels());
-    
+        
         backgroundGray = backgroundCol;
         grayImg = colorImg;
-    
+        
         if (bLearnBackground == true){
             backgroundGray = grayImgPic;
             bLearnBackground = false;
         }
-    
-    grayDiff.absDiff( backgroundGray, grayImgPic);
-    grayDiff.threshold(threshold);
-    
-    contourFinder.findContours(grayDiff, 20, (kinect.getWidth()*kinect.getHeight())/4, 1, false, true);
+        
+        grayDiff.absDiff( backgroundGray, grayImgPic);
+        grayDiff.threshold(threshold);
+        contourFinder.findContours(grayDiff, 20, (kinect.getWidth()*kinect.getHeight())/4, 1, false, true);
     }
     
-    //Timer function
-    
-//    actualTime = ofGetElapsedTimeMillis();
-//    int d = 0;
-//    while (d < 10000) {
-//        shotTime = ofGetElapsedTimeMillis();
-//
-//
-//
-//        d++;
-//
-//
-//        }
-//
-//    if (actualTime - shotTime > shotTimeDelta) {
-//        grayImgPic = grayImg;
-//
-//    }
-    
-    
-    
-
+    if (ofGetElapsedTimeMillis() > currentTime + waitTime){
+        // this is the loop that waits and does stuff every waitTime milliseconds
+        cout << "it's time !!!!" << endl;
+        
+        grayImgPic = grayImg; // update captured image
+                
+        currentTime = ofGetElapsedTimeMillis();
+        ofImage screenShot;
+        screenShot.grabScreen(0, 0, ofGetWidth(), ofGetHeight());
+        screenShots.push_back(screenShot);
+    }
 }
 
 //--------------------------------------------------------------
 void ofApp::draw(){
     
-    backgroundCol.draw(0,kinect.getHeight(), kinect.getWidth()/4, kinect.getHeight()/4);
-    backgroundGray.draw(0+(kinect.getWidth()/4), kinect.getHeight(), kinect.getWidth()/4, kinect.getHeight()/4);
-    
-    
-    colorImg.draw(0,kinect.getHeight()+((kinect.getHeight()/4)), kinect.getWidth()/4, kinect.getHeight()/4);
-    grayImg.draw(0+(kinect.getWidth()/4), kinect.getHeight()+((kinect.getHeight()/4)), kinect.getWidth()/4, kinect.getHeight()/4);
-    grayImgPic.draw(0+((kinect.getWidth()/4)*2), kinect.getHeight()+(kinect.getHeight()/4), kinect.getWidth()/4, kinect.getHeight()/4);
-    
-    grayDiff.draw(0+((kinect.getWidth()/4)*3), kinect.getHeight()+(kinect.getHeight()/4), kinect.getWidth()/4, kinect.getHeight()/4);
-    
-
+    if (b_showDebug){             // show or hide the debug stuff
+        backgroundCol.draw(0,kinect.getHeight(), kinect.getWidth()/4, kinect.getHeight()/4);
+        backgroundGray.draw(0+(kinect.getWidth()/4), kinect.getHeight(), kinect.getWidth()/4, kinect.getHeight()/4);
+        colorImg.draw(0,kinect.getHeight()+((kinect.getHeight()/4)), kinect.getWidth()/4, kinect.getHeight()/4);
+        grayImg.draw(0+(kinect.getWidth()/4), kinect.getHeight()+((kinect.getHeight()/4)), kinect.getWidth()/4, kinect.getHeight()/4);
+        grayImgPic.draw(0+((kinect.getWidth()/4)*2), kinect.getHeight()+(kinect.getHeight()/4), kinect.getWidth()/4, kinect.getHeight()/4);
+        grayDiff.draw(0+((kinect.getWidth()/4)*3), kinect.getHeight()+(kinect.getHeight()/4), kinect.getWidth()/4, kinect.getHeight()/4);
+        ofDrawBitmapString(ofGetTimestampString("%A %e %B %Y %R"), 0+10, kinect.getHeight()-10);
+    }
     
     ofPushMatrix();
     if (contourFinder.nBlobs > 0){
@@ -106,20 +89,19 @@ void ofApp::draw(){
             line.curveTo(blobpoints[j]);
         }
         line.close();
+        
         ofSetLineWidth(3.0);
         ofSetColor(0, 0, 0);
         line.draw();
-
+        ofSetColor(255);
     }
     ofPopMatrix();
     
-//    ofSetColor(0, 0, 0);
-            ofDrawBitmapString(ofGetTimestampString("%A %e %B %Y %R"), 0+10, kinect.getHeight()-10);
-    
-    
-    
-    
-
+    // draw screenshots to screen in a list
+    int thumbWidth = 100;
+    for (int i=0; i < screenShots.size(); i++){
+        screenShots[i].draw(i * thumbWidth, 10, thumbWidth, thumbWidth * 0.75 );
+    }
 }
 
 //--------------------------------------------------------------
@@ -131,77 +113,72 @@ void ofApp::keyPressed(int key){
             
         case 'p':
             grayImgPic = grayImg;
-//            shotTime = ofGetElapsedTimeMillis();
+            //            shotTime = ofGetElapsedTimeMillis();
             
         case 'q':
             threshold++;
             break;
-        
+            
         case 'a':
             threshold--;
+            break;
+            
+        case 'd':
+            // show or hide the debug stuff
+            b_showDebug = !b_showDebug;
             break;
             
         default:
             break;
     }
-
 }
 
 //--------------------------------------------------------------
 void ofApp::keyReleased(int key){
-    
-//    switch (key) {
-//        case 'p':
-//            shotTime = ofGetElapsedTimeMillis();
-//            break;
-//
-//        default:
-//            break;
-//    }
-
+   
 }
 
 //--------------------------------------------------------------
 void ofApp::mouseMoved(int x, int y ){
-
+    
 }
 
 //--------------------------------------------------------------
 void ofApp::mouseDragged(int x, int y, int button){
-
+    
 }
 
 //--------------------------------------------------------------
 void ofApp::mousePressed(int x, int y, int button){
-
+    
 }
 
 //--------------------------------------------------------------
 void ofApp::mouseReleased(int x, int y, int button){
-
+    
 }
 
 //--------------------------------------------------------------
 void ofApp::mouseEntered(int x, int y){
-
+    
 }
 
 //--------------------------------------------------------------
 void ofApp::mouseExited(int x, int y){
-
+    
 }
 
 //--------------------------------------------------------------
 void ofApp::windowResized(int w, int h){
-
+    
 }
 
 //--------------------------------------------------------------
 void ofApp::gotMessage(ofMessage msg){
-
+    
 }
 
 //--------------------------------------------------------------
 void ofApp::dragEvent(ofDragInfo dragInfo){ 
-
+    
 }
